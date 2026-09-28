@@ -1,585 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Saath Dekho</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --dusk: #1b2036;
-    --panel: #252b45;
-    --panel-2: #2e3554;
-    --line: #3b4366;
-    --text: #f1eadf;
-    --muted: #a7acc6;
-    --marigold: #f4b942;
-    --rose: #e8707e;
-    --mint: #6fd0a8;
-    --font: "Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0; background: var(--dusk); color: var(--text);
-    font-family: var(--font); font-size: 16px; line-height: 1.5;
-  }
-  button, input { font: inherit; color: inherit; }
-  button { cursor: pointer; }
-  :focus-visible { outline: 3px solid var(--marigold); outline-offset: 2px; }
-  [hidden] { display: none !important; }
-
-  /* ---------- Lobby ---------- */
-  #lobby { min-height: 100%; display: grid; place-items: center; padding: 24px; }
-  .lobby-card { width: min(440px, 100%); }
-  .lobby-card h1 { font-size: clamp(3rem, 12vw, 4.5rem); font-weight: 800; line-height: .95; margin: 0 0 12px; letter-spacing: -0.03em; }
-  .lobby-card p.lead { color: var(--muted); margin: 0 0 32px; max-width: 34ch; }
-  label { display: block; font-weight: 600; margin: 0 0 6px; }
-  .field { margin-bottom: 18px; }
-  input[type=text] {
-    width: 100%; padding: 12px 14px; border-radius: 10px; border: 1.5px solid var(--line);
-    background: var(--panel); color: var(--text);
-  }
-  input[type=text]::placeholder { color: #7f85a3; }
-  .row { display: flex; gap: 8px; }
-  .row input { flex: 1; letter-spacing: .12em; text-transform: uppercase; }
-  .btn {
-    border: 0; border-radius: 10px; padding: 11px 16px; font-weight: 600;
-    background: var(--panel-2); transition: transform .08s, background .15s;
-  }
-  .btn:hover { background: #3a4266; }
-  .btn:active { transform: translateY(1px); }
-  .btn.primary { background: var(--marigold); color: #2a1f00; }
-  .btn.primary:hover { background: #ffc85a; }
-  .btn.danger { background: var(--rose); color: #2b0a10; }
-  .btn.wide { width: 100%; padding: 14px; font-size: 1.05rem; }
-  .error { color: var(--rose); min-height: 1.4em; margin: 10px 0 0; }
-
-  /* ---------- Room ---------- */
-  #room { height: 100%; display: grid; grid-template-rows: auto 1fr; }
-  .topbar {
-    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-    padding: 10px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
-  }
-  .brand { font-weight: 800; font-size: 1.15rem; letter-spacing: -0.01em; }
-  .code-chip {
-    display: inline-flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px;
-    border: 1.5px dashed var(--line); border-radius: 999px; font-weight: 600; letter-spacing: .14em;
-  }
-  .code-chip button { padding: 4px 10px; border-radius: 999px; font-size: .85rem; letter-spacing: 0; }
-  .status { margin-left: auto; display: flex; align-items: center; gap: 8px; color: var(--muted); }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: #6b7194; }
-  .dot.on { background: var(--mint); }
-
-  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; min-height: 0; }
-  .stage { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow: auto; }
-  .side { border-left: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
-
-  .source-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .source-bar input[type=text] { flex: 1; min-width: 200px; letter-spacing: 0; text-transform: none; }
-  .file-btn { position: relative; overflow: hidden; display: inline-block; }
-  .file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-
-  .screen {
-    position: relative; width: 100%; aspect-ratio: 16 / 9; background: #0f1220;
-    border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
-  }
-  .screen video, .screen iframe, .screen #yt { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
-  .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px; color: var(--muted); }
-  .empty strong { display: block; color: var(--text); font-size: 1.25rem; margin-bottom: 4px; }
-  .notice { background: var(--panel-2); border-left: 4px solid var(--marigold); padding: 10px 14px; border-radius: 8px; }
-  .hint { color: var(--muted); font-size: .92rem; margin: 0; }
-
-  .call { padding: 12px; border-bottom: 1px solid var(--line); }
-  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tile { position: relative; aspect-ratio: 4 / 3; background: #0f1220; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
-  .tile video { width: 100%; height: 100%; object-fit: cover; }
-  .tile span { position: absolute; left: 6px; bottom: 4px; font-size: .78rem; background: rgba(0,0,0,.55); padding: 1px 7px; border-radius: 6px; }
-  .call-controls { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-  .call-controls .btn { flex: 1; padding: 8px 10px; font-size: .9rem; }
-
-  .chat { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  #messages { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
-  .msg { max-width: 88%; padding: 7px 11px; border-radius: 12px; background: var(--panel-2); word-wrap: break-word; }
-  .msg.me { align-self: flex-end; background: #4a4020; }
-  .msg small { display: block; color: var(--muted); font-size: .75rem; }
-  .msg.sys { align-self: center; background: transparent; color: var(--muted); font-size: .85rem; }
-  .chat-form { display: flex; gap: 6px; padding: 10px; border-top: 1px solid var(--line); }
-  .chat-form input { flex: 1; text-transform: none; letter-spacing: 0; }
-
-  @media (max-width: 860px) {
-    #room { height: auto; min-height: 100%; }
-    .layout { grid-template-columns: 1fr; }
-    .side { border-left: 0; border-top: 1px solid var(--line); min-height: 420px; }
-  }
-  @media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sath-Dekho</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #222; color: white; }
+        .container { max-width: 800px; margin: auto; padding: 20px; }
+        video, iframe { width: 100%; max-width: 720px; height: 405px; background: black; margin-top: 20px; border: none; display: none; }
+        .controls { margin: 20px 0; padding: 10px; background: #333; border-radius: 8px; }
+        input, button { padding: 10px; margin: 5px; font-size: 16px; border-radius: 4px; border: none; }
+        button { background: #28a745; color: white; cursor: pointer; }
+        button:hover { background: #218838; }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <h1>Sath-Dekho (Sync Player)</h1>
+        
+        <div class="controls">
+            <!-- YouTube Option -->
+            <input type="text" id="ytUrl" placeholder="Paste YouTube Video Link here..." style="width: 60%;">
+            <button onclick="loadYouTube()">Load YouTube</button>
+            <br><br>
+            <!-- Local Video Option -->
+            <label for="localFile">Oooor Choose Local Video: </label>
+            <input type="file" id="localFile" accept="video/*" onchange="loadLocalVideo()">
+        </div>
 
-<!-- Lobby -->
-<main id="lobby">
-  <div class="lobby-card">
-    <h1>Saath<br>Dekho</h1>
-    <p class="lead">Room code banao, dost ko bhejo, aur alag shehar se bhi ek saath movie dekho.</p>
-    <div class="field">
-      <label for="name">Aapka naam</label>
-      <input type="text" id="name" maxlength="24" placeholder="Belal" autocomplete="nickname">
+        <!-- HTML5 Video Player for Local Files -->
+        <video id="localPlayer" controls></video>
+        
+        <!-- YouTube Player Container -->
+        <div id="ytPlayer"></div>
     </div>
-    <div class="field">
-      <label for="code">Room code</label>
-      <div class="row">
-        <input type="text" id="code" maxlength="12" placeholder="MOVIE7" autocomplete="off">
-        <button class="btn" id="newCode" type="button">New code</button>
-      </div>
-    </div>
-    <button class="btn primary wide" id="enter" type="button">Enter room</button>
-    <p class="error" id="lobbyError" role="alert"></p>
-  </div>
-</main>
 
-<!-- Room -->
-<div id="room" hidden>
-  <header class="topbar">
-    <span class="brand">Saath Dekho</span>
-    <span class="code-chip"><span id="roomCode"></span><button class="btn" id="copyCode" type="button">Copy</button></span>
-    <span class="status"><span class="dot" id="peerDot"></span><span id="peerText">Waiting for your friend</span></span>
-  </header>
+    <!-- Socket.io Library -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- YouTube Iframe API -->
+    <script src="https://youtube.com"></script>
 
-  <div class="layout">
-    <section class="stage">
-      <div class="source-bar">
-        <input type="text" id="ytUrl" placeholder="Paste a YouTube link">
-        <button class="btn primary" id="loadYt" type="button">Load YouTube</button>
-        <span class="btn file-btn">Choose video file<input type="file" id="fileInput" accept="video/*,.mkv"></span>
-      </div>
+    <script>
+        const socket = io();
+        const localPlayer = document.getElementById('localPlayer');
+        let ytPlayer;
+        let currentMode = ''; // 'youtube' or 'local'
+        let isSyncing = false;
 
-      <div class="notice" id="needFile" hidden></div>
+        // 1. LOCAL VIDEO LOGIC
+        function loadLocalVideo() {
+            const fileInput = document.getElementById('localFile');
+            const file = fileInput.files[0];
+            if (!file) return;
+            
+            currentMode = 'local';
+            document.getElementById('ytPlayer').style.display = 'none';
+            if(ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
 
-      <div class="screen" id="screen">
-        <div class="empty" id="emptyState">
-          <div><strong>Abhi kuch load nahi hua</strong>YouTube link daalo, ya apne device se video file chuno. Dono ko same file chunni hogi.</div>
-        </div>
-        <div id="ytHost" hidden><div id="yt"></div></div>
-        <video id="localVideo" controls playsinline hidden></video>
-      </div>
-      <p class="hint">Movie ki awaaz aur call ki awaaz mix na ho, isliye headphones use karo. Play, pause aur seek dono taraf sync hote hain.</p>
-    </section>
-
-    <aside class="side">
-      <div class="call">
-        <div class="tiles">
-          <div class="tile"><video id="selfView" autoplay muted playsinline></video><span>You</span></div>
-          <div class="tile"><video id="peerView" autoplay playsinline></video><span id="peerLabel">Friend</span></div>
-        </div>
-        <div class="call-controls">
-          <button class="btn primary" id="startCall" type="button">Start call</button>
-          <button class="btn primary" id="joinCall" type="button" hidden>Join call</button>
-          <button class="btn" id="muteBtn" type="button" hidden>Mute</button>
-          <button class="btn" id="camBtn" type="button" hidden>Camera off</button>
-          <button class="btn danger" id="hangBtn" type="button" hidden>Leave call</button>
-        </div>
-      </div>
-      <div class="chat">
-        <div id="messages" aria-live="polite"></div>
-        <form class="chat-form" id="chatForm">
-          <input type="text" id="chatInput" placeholder="Message likho" maxlength="500" autocomplete="off">
-          <button class="btn primary" type="submit">Send</button>
-        </form>
-      </div>
-    </aside>
-  </div>
-</div>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-(() => {
-  const $ = (s) => document.querySelector(s);
-  const socket = io();
-
-  let myName = 'Guest';
-  let peerName = null;
-  let source = null;            // {kind:'youtube', id} | {kind:'local', name, size}
-  let player = null;            // {play, pause, seek, time, playing, destroy}
-  let pendingLocal = null;      // local source announced by friend, waiting for our file
-  let lastPlayback = null;      // {playing, time, at}
-  let applyingRemote = false;
-  let applyTimer = null;
-
-  /* ---------- helpers ---------- */
-  function addMsg(text, cls, who) {
-    const d = document.createElement('div');
-    d.className = 'msg ' + (cls || '');
-    if (who) { const s = document.createElement('small'); s.textContent = who; d.appendChild(s); }
-    d.appendChild(document.createTextNode(text));
-    const box = $('#messages');
-    box.appendChild(d);
-    box.scrollTop = box.scrollHeight;
-  }
-  function setPeer(name) {
-    peerName = name;
-    $('#peerDot').classList.toggle('on', !!name);
-    $('#peerText').textContent = name ? name + ' is here' : 'Waiting for your friend';
-    $('#peerLabel').textContent = name || 'Friend';
-  }
-  function whileRemote(fn) {
-    applyingRemote = true;
-    clearTimeout(applyTimer);
-    try { fn(); } catch (e) { console.error(e); }
-    applyTimer = setTimeout(() => { applyingRemote = false; }, 900);
-  }
-  function randomCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let c = '';
-    for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
-    return c;
-  }
-  function expected(pb) { return pb.playing ? pb.time + (Date.now() - pb.at) / 1000 : pb.time; }
-
-  /* ---------- lobby ---------- */
-  $('#newCode').onclick = () => { $('#code').value = randomCode(); };
-  $('#enter').onclick = enter;
-  $('#code').addEventListener('keydown', (e) => { if (e.key === 'Enter') enter(); });
-  $('#name').addEventListener('keydown', (e) => { if (e.key === 'Enter') enter(); });
-
-  function enter() {
-    const name = $('#name').value.trim();
-    const code = $('#code').value.trim().toUpperCase();
-    if (!name) { $('#lobbyError').textContent = 'Pehle apna naam likho.'; return; }
-    if (!code) { $('#lobbyError').textContent = 'Room code likho ya "New code" dabao.'; return; }
-    socket.emit('join', { room: code, name }, (res) => {
-      if (!res || res.error) { $('#lobbyError').textContent = (res && res.error) || 'Join nahi ho paya.'; return; }
-      myName = name;
-      $('#lobby').hidden = true;
-      $('#room').hidden = false;
-      $('#roomCode').textContent = res.room;
-      setPeer(res.peers[0] || null);
-      addMsg('Room ' + res.room + ' me aap aa gaye.', 'sys');
-      if (res.source) handleSource(res.source, res.playback);
-    });
-  }
-
-  $('#copyCode').onclick = async () => {
-    try { await navigator.clipboard.writeText($('#roomCode').textContent); $('#copyCode').textContent = 'Copied'; }
-    catch { $('#copyCode').textContent = 'Copy failed'; }
-    setTimeout(() => { $('#copyCode').textContent = 'Copy'; }, 1500);
-  };
-
-  /* ---------- player plumbing ---------- */
-  function showScreen(which) {
-    $('#emptyState').hidden = which !== 'none';
-    $('#ytHost').hidden = which !== 'yt';
-    $('#localVideo').hidden = which !== 'local';
-  }
-  function destroyPlayer() {
-    if (player && player.destroy) player.destroy();
-    player = null;
-    showScreen('none');
-  }
-  function sendPlayback() {
-    if (!player || applyingRemote) return;
-    const pb = { playing: player.playing(), time: player.time() };
-    lastPlayback = { ...pb, at: Date.now() };
-    socket.emit('playback', pb);
-  }
-  function applyPlayback(pb) {
-    lastPlayback = { playing: pb.playing, time: pb.time, at: Date.now() };
-    if (!player) return;
-    whileRemote(() => {
-      const target = pb.time;
-      if (Math.abs(player.time() - target) > 0.8) player.seek(target);
-      if (pb.playing) player.play(); else player.pause();
-    });
-  }
-
-  /* ---------- local file player ---------- */
-  function makeLocalPlayer(file) {
-    const v = $('#localVideo');
-    if (v.dataset.url) URL.revokeObjectURL(v.dataset.url);
-    const url = URL.createObjectURL(file);
-    v.dataset.url = url;
-    v.src = url;
-    const onPlay = () => sendPlayback();
-    const onPause = () => sendPlayback();
-    const onSeeked = () => sendPlayback();
-    v.addEventListener('play', onPlay);
-    v.addEventListener('pause', onPause);
-    v.addEventListener('seeked', onSeeked);
-    showScreen('local');
-    return {
-      play: () => v.play().catch(() => addMsg('Browser ne autoplay roka. Video par ek baar click karo.', 'sys')),
-      pause: () => v.pause(),
-      seek: (t) => { v.currentTime = t; },
-      time: () => v.currentTime,
-      playing: () => !v.paused,
-      destroy: () => {
-        v.removeEventListener('play', onPlay);
-        v.removeEventListener('pause', onPause);
-        v.removeEventListener('seeked', onSeeked);
-        v.pause(); v.removeAttribute('src'); v.load();
-        if (v.dataset.url) { URL.revokeObjectURL(v.dataset.url); delete v.dataset.url; }
-      },
-    };
-  }
-
-  /* ---------- YouTube player ---------- */
-  let ytApiPromise = null;
-  function loadYtApi() {
-    if (window.YT && window.YT.Player) return Promise.resolve();
-    if (ytApiPromise) return ytApiPromise;
-    ytApiPromise = new Promise((resolve) => {
-      window.onYouTubeIframeAPIReady = resolve;
-      const s = document.createElement('script');
-      s.src = 'https://www.youtube.com/iframe_api';
-      document.head.appendChild(s);
-    });
-    return ytApiPromise;
-  }
-  async function makeYtPlayer(id) {
-    await loadYtApi();
-    // fresh mount point each time
-    $('#ytHost').innerHTML = '<div id="yt"></div>';
-    showScreen('yt');
-    let yt, poll, lastT = 0, ready = false;
-    return new Promise((resolve) => {
-      yt = new YT.Player('yt', {
-        videoId: id,
-        playerVars: { playsinline: 1, rel: 0 },
-        events: {
-          onReady: () => {
-            ready = true;
-            // detect seeks by watching for time jumps
-            poll = setInterval(() => {
-              const t = yt.getCurrentTime();
-              const playing = yt.getPlayerState() === 1;
-              const drift = Math.abs(t - lastT - (playing ? 0.5 : 0));
-              if (drift > 1.5 && !applyingRemote) sendPlayback();
-              lastT = t;
-            }, 500);
-            resolve({
-              play: () => yt.playVideo(),
-              pause: () => yt.pauseVideo(),
-              seek: (t) => yt.seekTo(t, true),
-              time: () => yt.getCurrentTime(),
-              playing: () => yt.getPlayerState() === 1,
-              destroy: () => { clearInterval(poll); try { yt.destroy(); } catch (e) {} },
-            });
-          },
-          onStateChange: (e) => {
-            if (!ready) return;
-            if (e.data === 1 || e.data === 2) sendPlayback();
-          },
-        },
-      });
-    });
-  }
-  function parseYouTubeId(input) {
-    const s = input.trim();
-    if (/^[\w-]{11}$/.test(s)) return s;
-    const m = s.match(/(?:youtu\.be\/|v=|embed\/|shorts\/|live\/)([\w-]{11})/);
-    return m ? m[1] : null;
-  }
-
-  /* ---------- sources ---------- */
-  async function setSource(src, file) {
-    destroyPlayer();
-    source = src;
-    $('#needFile').hidden = true;
-    if (src.kind === 'youtube') {
-      player = await makeYtPlayer(src.id);
-    } else if (src.kind === 'local' && file) {
-      player = makeLocalPlayer(file);
-    }
-    if (player && lastPlayback) {
-      applyPlayback({ playing: lastPlayback.playing, time: expected(lastPlayback) });
-    }
-  }
-
-  // called for a source announced by the friend (or already active when we joined)
-  function handleSource(src, playback) {
-    lastPlayback = playback ? { playing: playback.playing, time: playback.time, at: Date.now() } : null;
-    if (src.kind === 'youtube') {
-      pendingLocal = null;
-      setSource(src);
-      addMsg('YouTube video load ho gaya.', 'sys');
-    } else if (src.kind === 'local') {
-      destroyPlayer();
-      source = src;
-      pendingLocal = src;
-      const n = $('#needFile');
-      n.textContent = 'Friend ne "' + src.name + '" chuni hai. "Choose video file" dabao aur wahi file chuno.';
-      n.hidden = false;
-    }
-  }
-
-  $('#loadYt').onclick = async () => {
-    const id = parseYouTubeId($('#ytUrl').value);
-    if (!id) { addMsg('YouTube link sahi nahi lag raha.', 'sys'); return; }
-    pendingLocal = null;
-    lastPlayback = { playing: false, time: 0, at: Date.now() };
-    await setSource({ kind: 'youtube', id });
-    socket.emit('source', { kind: 'youtube', id });
-  };
-
-  $('#fileInput').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    e.target.value = '';
-    if (!file) return;
-    if (pendingLocal) {
-      // friend already chose a file; load ours without resetting their playback
-      if (pendingLocal.size && pendingLocal.size !== file.size) {
-        addMsg('Dhyan do: file ka size friend ki file se alag hai. Same version ho to sync sahi rahega.', 'sys');
-      }
-      const src = pendingLocal;
-      pendingLocal = null;
-      await setSource(src, file);
-    } else {
-      const src = { kind: 'local', name: file.name, size: file.size };
-      lastPlayback = { playing: false, time: 0, at: Date.now() };
-      await setSource(src, file);
-      socket.emit('source', src);
-      addMsg('Friend ko bolo ki wo bhi "' + file.name + '" wali file chune.', 'sys');
-    }
-  });
-
-  /* ---------- socket events ---------- */
-  socket.on('source', ({ source: src, from }) => {
-    addMsg(from + ' ne naya video chuna.', 'sys');
-    lastPlayback = { playing: false, time: 0, at: Date.now() };
-    handleSource(src, { playing: false, time: 0 });
-  });
-  socket.on('playback', (pb) => applyPlayback(pb));
-  socket.on('peer-joined', ({ name }) => {
-    setPeer(name);
-    addMsg(name + ' aa gaya.', 'sys');
-  });
-  socket.on('peer-left', ({ name }) => {
-    setPeer(null);
-    addMsg(name + ' chala gaya.', 'sys');
-    endCall(false);
-  });
-  socket.on('chat', ({ name, text }) => addMsg(text, name === myName ? 'me' : '', name));
-
-  $('#chatForm').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const t = $('#chatInput').value.trim();
-    if (!t) return;
-    socket.emit('chat', t);
-    $('#chatInput').value = '';
-  });
-
-  /* ---------- voice / video call (WebRTC, signalling via socket) ---------- */
-  const ICE = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
-  let pc = null, localStream = null, incomingOffer = null, pendingIce = [];
-
-  async function getMedia() {
-    if (localStream) return localStream;
-    try {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-    } catch (e) {
-      localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    }
-    $('#selfView').srcObject = localStream;
-    return localStream;
-  }
-  function makePC() {
-    if (pc) pc.close();
-    pc = new RTCPeerConnection(ICE);
-    pc.onicecandidate = (e) => { if (e.candidate) socket.emit('signal', { candidate: e.candidate }); };
-    pc.ontrack = (e) => { $('#peerView').srcObject = e.streams[0]; };
-    localStream.getTracks().forEach((t) => pc.addTrack(t, localStream));
-  }
-  function callUI(active) {
-    $('#startCall').hidden = active;
-    $('#joinCall').hidden = true;
-    $('#muteBtn').hidden = !active;
-    $('#camBtn').hidden = !active;
-    $('#hangBtn').hidden = !active;
-  }
-  async function flushIce() {
-    while (pendingIce.length) { try { await pc.addIceCandidate(pendingIce.shift()); } catch (e) {} }
-  }
-
-  $('#startCall').onclick = async () => {
-    if (!peerName) { addMsg('Pehle friend ko room me aane do, phir call start karo.', 'sys'); return; }
-    try {
-      await getMedia();
-    } catch (e) {
-      addMsg('Mic/camera ki permission nahi mili.', 'sys'); return;
-    }
-    makePC();
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    socket.emit('signal', { sdp: pc.localDescription });
-    callUI(true);
-    addMsg('Call ring ho rahi hai...', 'sys');
-  };
-
-  $('#joinCall').onclick = async () => {
-    if (!incomingOffer) return;
-    try {
-      await getMedia();
-    } catch (e) {
-      addMsg('Mic/camera ki permission nahi mili.', 'sys'); return;
-    }
-    makePC();
-    await pc.setRemoteDescription(incomingOffer);
-    incomingOffer = null;
-    await flushIce();
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    socket.emit('signal', { sdp: pc.localDescription });
-    callUI(true);
-  };
-
-  socket.on('signal', async (d) => {
-    try {
-      if (d.hangup) { endCall(false); addMsg('Friend ne call chhod di.', 'sys'); return; }
-      if (d.sdp) {
-        if (d.sdp.type === 'offer') {
-          incomingOffer = d.sdp;
-          $('#startCall').hidden = true;
-          $('#joinCall').hidden = false;
-          addMsg('Friend call kar raha hai. "Join call" dabao.', 'sys');
-        } else if (pc) {
-          await pc.setRemoteDescription(d.sdp);
-          await flushIce();
+            const fileURL = URL.createObjectURL(file);
+            localPlayer.src = fileURL;
+            localPlayer.style.display = 'block';
         }
-      } else if (d.candidate) {
-        if (pc && pc.remoteDescription) await pc.addIceCandidate(d.candidate);
-        else pendingIce.push(d.candidate);
-      }
-    } catch (e) { console.error(e); }
-  });
 
-  $('#muteBtn').onclick = () => {
-    const t = localStream && localStream.getAudioTracks()[0];
-    if (!t) return;
-    t.enabled = !t.enabled;
-    $('#muteBtn').textContent = t.enabled ? 'Mute' : 'Unmute';
-  };
-  $('#camBtn').onclick = () => {
-    const t = localStream && localStream.getVideoTracks()[0];
-    if (!t) { addMsg('Camera available nahi hai.', 'sys'); return; }
-    t.enabled = !t.enabled;
-    $('#camBtn').textContent = t.enabled ? 'Camera off' : 'Camera on';
-  };
-  $('#hangBtn').onclick = () => endCall(true);
+        // Local Player Events to Sync
+        localPlayer.onplay = () => {
+            if (isSyncing) return;
+            socket.emit('video-action', { mode: 'local', type: 'play', time: localPlayer.currentTime });
+        };
+        localPlayer.onpause = () => {
+            if (isSyncing) return;
+            socket.emit('video-action', { mode: 'local', type: 'pause', time: localPlayer.currentTime });
+        };
+        localPlayer.onseeking = () => {
+            if (isSyncing) return;
+            socket.emit('video-action', { mode: 'local', type: 'seek', time: localPlayer.currentTime });
+        };
 
-  function endCall(notify) {
-    if (notify) socket.emit('signal', { hangup: true });
-    if (pc) { pc.close(); pc = null; }
-    if (localStream) { localStream.getTracks().forEach((t) => t.stop()); localStream = null; }
-    incomingOffer = null; pendingIce = [];
-    $('#selfView').srcObject = null;
-    $('#peerView').srcObject = null;
-    $('#muteBtn').textContent = 'Mute';
-    $('#camBtn').textContent = 'Camera off';
-    callUI(false);
-  }
-})();
-</script>
+        // 2. YOUTUBE VIDEO LOGIC
+        function onYouTubeIframeAPIReady() {
+            ytPlayer = new YT.Player('ytPlayer', {
+                height: '405', width: '720', videoId: '',
+                events: { 'onStateChange': onPlayerStateChange }
+            });
+        }
+
+        function loadYouTube() {
+            const url = document.getElementById('ytUrl').value;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
+            
+            if (match && match[2].length == 11) {
+                currentMode = 'youtube';
+                localPlayer.style.display = 'none';
+                localPlayer.pause();
+                
+                document.getElementById('ytPlayer').style.display = 'block';
+                ytPlayer.loadVideoById(match[2]);
+                
+                socket.emit('video-action', { mode: 'youtube', type: 'load', videoId: match[2] });
+            } else {
+                alert("Please paste a valid YouTube URL");
+            }
+        }
+
+        function onPlayerStateChange(event) {
+            if (isSyncing || currentMode !== 'youtube') return;
+            
+            if (event.data == YT.PlayerState.PLAYING) {
+                socket.emit('video-action', { mode: 'youtube', type: 'play', time: ytPlayer.getCurrentTime() });
+            } else if (event.data == YT.PlayerState.PAUSED) {
+                socket.emit('video-action', { mode: 'youtube', type: 'pause', time: ytPlayer.getCurrentTime() });
+            }
+        }
+
+        // 3. RECEIVING SYNC SIGNALS FROM SERVER
+        socket.on('video-action', (data) => {
+            isSyncing = true; // Auto-loop rokne ke liye
+
+            if (data.mode === 'local' && currentMode === 'local') {
+                if (data.type === 'play') {
+                    localPlayer.currentTime = data.time;
+                    localPlayer.play();
+                } else if (data.type === 'pause') {
+                    localPlayer.pause();
+                } else if (data.type === 'seek') {
+                    localPlayer.currentTime = data.time;
+                }
+            } 
+            
+            else if (data.mode === 'youtube' && currentMode === 'youtube') {
+                if (data.type === 'load') {
+                    ytPlayer.loadVideoById(data.videoId);
+                } else if (data.type === 'play') {
+                    if (Math.abs(ytPlayer.getCurrentTime() - data.time) > 2) {
+                        ytPlayer.seekTo(data.time, true);
+                    }
+                    ytPlayer.playVideo();
+                } else if (data.type === 'pause') {
+                    ytPlayer.pauseVideo();
+                }
+            }
+
+            setTimeout(() => { isSyncing = false; }, 500);
+        });
+    </script>
 </body>
 </html>
