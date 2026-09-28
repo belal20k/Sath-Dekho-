@@ -10,10 +10,17 @@ app.use(express.static('public'));
 io.on('connection', (socket) => {
     console.log('A user connected: ' + socket.id);
 
-    // YouTube ya Local Video ka status sync karne ke liye
+    // Room join karne ke liye
+    socket.on('join-room', (roomName) => {
+        socket.join(roomName);
+        console.log(`${socket.id} joined room: ${roomName}`);
+    });
+
+    // Room ke andar video action sync karne ke liye
     socket.on('video-action', (data) => {
-        // Baki sabhi connected users ko ye action bhej do
-        socket.broadcast.emit('video-action', data);
+        if (data.room) {
+            socket.to(data.room).emit('video-action', data);
+        }
     });
 
     socket.on('disconnect', () => {
