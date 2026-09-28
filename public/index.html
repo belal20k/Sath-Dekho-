@@ -17,25 +17,27 @@
 </head>
 <body>
     <div class="container">
-        <h1>Sath-Dekho (Sync Player)</h1>
+        <h1>Sath-Dekho</h1>
 
-        <!-- Connection Screen -->
+        <!-- Connection Screen (Purani wali) -->
         <div id="loginScreen" class="box">
             <h3>Enter Room to Connect with Friend</h3>
             <input type="text" id="roomInput" placeholder="Enter Room Name (e.g., masti123)">
             <button onclick="joinRoom()">Connect / Join Room</button>
         </div>
 
-        <!-- Main Player Screen (Hidden at start) -->
+        <!-- Main Player Screen -->
         <div id="playerScreen" class="box" style="display: none;">
             <div class="room-info" id="roomDisplay">Room: Connected</div>
             
+            <!-- Purana YouTube Link Option -->
             <div style="border-bottom: 1px solid #555; padding-bottom: 15px; margin-bottom: 15px;">
-                <h4>Option 1: Search & Play YouTube Directly</h4>
-                <input type="text" id="ytSearch" placeholder="Type Video Name (e.g., funny cat videos)" style="width: 50%;">
-                <button onclick="searchYouTube()" style="background: #c30000;">Search YouTube</button>
+                <h4>Option 1: Paste YouTube Video Link</h4>
+                <input type="text" id="ytUrl" placeholder="Paste YouTube Video Link here..." style="width: 60%;">
+                <button onclick="loadYouTube()">Load YouTube</button>
             </div>
 
+            <!-- Naya Local Video Option -->
             <div>
                 <h4>Option 2: Choose Local Video (Must be same file for both)</h4>
                 <input type="file" id="localFile" accept="video/*" onchange="loadLocalVideo()">
@@ -70,7 +72,7 @@
             document.getElementById('roomDisplay').innerText = "Connected to Room: " + currentRoom;
         }
 
-        // LOCAL VIDEO
+        // LOCAL VIDEO CODE
         function loadLocalVideo() {
             const fileInput = document.getElementById('localFile');
             if (!fileInput.files.length) return;
@@ -82,6 +84,9 @@
             const fileURL = URL.createObjectURL(fileInput.files[0]);
             localPlayer.src = fileURL;
             localPlayer.style.display = 'block';
+            
+            // Dost ki screen par bhi local player switch karne ke liye signal
+            socket.emit('video-action', { room: currentRoom, mode: 'local', type: 'setup-local' });
         }
 
         localPlayer.onplay = () => {
@@ -97,7 +102,7 @@
             socket.emit('video-action', { room: currentRoom, mode: 'local', type: 'seek', time: localPlayer.currentTime });
         };
 
-        // YOUTUBE DIRECT SEARCH & PLAY
+        // YOUTUBE CODE (Purana wala)
         function onYouTubeIframeAPIReady() {
             ytPlayer = new YT.Player('ytPlayer', {
                 height: '405', width: '720', videoId: '',
@@ -105,24 +110,24 @@
             });
         }
 
-        function searchYouTube() {
-            const query = document.getElementById('ytSearch').value.trim();
-            if(!query) return alert("Please type a search query");
+        function loadYouTube() {
+            const url = document.getElementById('ytUrl').value;
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+            const match = url.match(regExp);
             
-            // Redirecting to embed player via generic search list or keyword
-            // Direct trick: Load a placeholder that triggers sync or uses open query format
-            // Hum directly standard ID trigger karenge jo live user ko connect karegi
-            alert("Searching & Syncing! (Tip: For perfect sync, paste video ID or name)");
-            
-            // Aasan tarike ke liye hum content filter pass karte hain
-            // Agar query direct ID hai toh load karega, nahi toh basic structure trigger karega
-            currentMode = 'youtube';
-            localPlayer.style.display = 'none';
-            localPlayer.pause();
-            document.getElementById('ytPlayer').style.display = 'block';
-            
-            // For Demo/Direct use, passing query as temporary ID or handling via message
-            socket.emit('video-action', { room: currentRoom, mode: 'youtube', type: 'search-load', query: query });
+            if (match && match.length >= 2 && match[2].length == 11) {
+                const videoId = match[2];
+                currentMode = 'youtube';
+                localPlayer.style.display = 'none';
+                localPlayer.pause();
+                
+                document.getElementById('ytPlayer').style.display = 'block';
+                ytPlayer.loadVideoById(videoId);
+                
+                socket.emit('video-action', { room: currentRoom, mode: 'youtube', type: 'load', videoId: videoId });
+            } else {
+                alert("Please paste a valid YouTube URL");
+            }
         }
 
         function onPlayerStateChange(event) {
@@ -134,20 +139,32 @@
             }
         }
 
+        // SYNC RECEIVER
         socket.on('video-action', (data) => {
             isSyncing = true;
-            if (data.mode === 'local' && currentMode === 'local') {
-                if (data.type === 'play') { localPlayer.currentTime = data.time; localPlayer.play(); }
-                else if (data.type === 'pause') { localPlayer.pause(); }
-                else if (data.type === 'seek') { localPlayer.currentTime = data.time; }
+            
+            if (data.mode === 'local') {
+                if (data.type === 'setup-local') {
+                    currentMode = 'local';
+                    document.getElementById('ytPlayer').style.display = 'none';
+                    if(ytPlayer && ytPlayer.stopVideo) ytPlayer.stopVideo();
+                    localPlayer.style.display = 'block';
+                    alert("Your friend chose a local video. Please choose the same video file from your computer to watch together!");
+                }
+                else if (currentMode === 'local') {
+                    if (data.type === 'play') { localPlayer.currentTime = data.time; localPlayer.play(); }
+                    else if (data.type === 'pause') { localPlayer.pause(); }
+                    else if (data.type === 'seek') { localPlayer.currentTime = data.time; }
+                }
             } 
+            
             else if (data.mode === 'youtube') {
-                if (data.type === 'search-load') {
+                if (data.type === 'load') {
                     currentMode = 'youtube';
                     localPlayer.style.display = 'none';
+                    localPlayer.pause();
                     document.getElementById('ytPlayer').style.display = 'block';
-                    // Load directly or fall back safely
-                    ytPlayer.cueVideoById(data.query); 
+                    ytPlayer.loadVideoById(data.videoId);
                 }
                 else if (data.type === 'play' && currentMode === 'youtube') {
                     if (Math.abs(ytPlayer.getCurrentTime() - data.time) > 2) ytPlayer.seekTo(data.time, true);
