@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Saath Dekho</title>
+<title>Watch Together</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
@@ -122,11 +122,11 @@
 <!-- Lobby -->
 <main id="lobby">
   <div class="lobby-card">
-    <h1>Saath<br>Dekho</h1>
-    <p class="lead">Room code banao, dost ko bhejo, aur alag shehar se bhi ek saath movie dekho.</p>
+    <h1>Watch<br>Together</h1>
+    <p class="lead">Create a room code, send it to your friend, and watch a movie together, even from different cities.</p>
     <div class="field">
-      <label for="name">Aapka naam</label>
-      <input type="text" id="name" maxlength="24" placeholder="Belal" autocomplete="nickname">
+      <label for="name">Your name</label>
+      <input type="text" id="name" maxlength="24" placeholder="ADIBA" autocomplete="nickname">
     </div>
     <div class="field">
       <label for="code">Room code</label>
@@ -143,7 +143,7 @@
 <!-- Room -->
 <div id="room" hidden>
   <header class="topbar">
-    <span class="brand">Saath Dekho</span>
+    <span class="brand">Watch Together</span>
     <span class="code-chip"><span id="roomCode"></span><button class="btn" id="copyCode" type="button">Copy</button></span>
     <span class="status"><span class="dot" id="peerDot"></span><span id="peerText">Waiting for your friend</span></span>
   </header>
@@ -160,12 +160,12 @@
 
       <div class="screen" id="screen">
         <div class="empty" id="emptyState">
-          <div><strong>Abhi kuch load nahi hua</strong>YouTube link daalo, ya apne device se video file chuno. Dono ko same file chunni hogi.</div>
+          <div><strong>Nothing loaded yet</strong>Paste a YouTube link, or choose a video file from your device. Both of you need to choose the same file.</div>
         </div>
         <div id="ytHost" hidden><div id="yt"></div></div>
         <video id="localVideo" controls playsinline hidden></video>
       </div>
-      <p class="hint">Movie ki awaaz aur call ki awaaz mix na ho, isliye headphones use karo. Play, pause aur seek dono taraf sync hote hain.</p>
+      <p class="hint">Use headphones so the movie audio and the call audio don't mix. Play, pause and seek are synced for both of you.</p>
     </section>
 
     <aside class="side">
@@ -185,7 +185,7 @@
       <div class="chat">
         <div id="messages" aria-live="polite"></div>
         <form class="chat-form" id="chatForm">
-          <input type="text" id="chatInput" placeholder="Message likho" maxlength="500" autocomplete="off">
+          <input type="text" id="chatInput" placeholder="Type a message" maxlength="500" autocomplete="off">
           <button class="btn primary" type="submit">Send</button>
         </form>
       </div>
@@ -247,16 +247,16 @@
   function enter() {
     const name = $('#name').value.trim();
     const code = $('#code').value.trim().toUpperCase();
-    if (!name) { $('#lobbyError').textContent = 'Pehle apna naam likho.'; return; }
-    if (!code) { $('#lobbyError').textContent = 'Room code likho ya "New code" dabao.'; return; }
+    if (!name) { $('#lobbyError').textContent = 'Please enter your name first.'; return; }
+    if (!code) { $('#lobbyError').textContent = 'Enter a room code or press "New code".'; return; }
     socket.emit('join', { room: code, name }, (res) => {
-      if (!res || res.error) { $('#lobbyError').textContent = (res && res.error) || 'Join nahi ho paya.'; return; }
+      if (!res || res.error) { $('#lobbyError').textContent = (res && res.error) || 'Could not join the room.'; return; }
       myName = name;
       $('#lobby').hidden = true;
       $('#room').hidden = false;
       $('#roomCode').textContent = res.room;
       setPeer(res.peers[0] || null);
-      addMsg('Room ' + res.room + ' me aap aa gaye.', 'sys');
+      addMsg('You joined room ' + res.room + '.', 'sys');
       if (res.source) handleSource(res.source, res.playback);
     });
   }
@@ -309,7 +309,7 @@
     v.addEventListener('seeked', onSeeked);
     showScreen('local');
     return {
-      play: () => v.play().catch(() => addMsg('Browser ne autoplay roka. Video par ek baar click karo.', 'sys')),
+      play: () => v.play().catch(() => addMsg('The browser blocked autoplay. Click the video once.', 'sys')),
       pause: () => v.pause(),
       seek: (t) => { v.currentTime = t; },
       time: () => v.currentTime,
@@ -403,20 +403,20 @@
     if (src.kind === 'youtube') {
       pendingLocal = null;
       setSource(src);
-      addMsg('YouTube video load ho gaya.', 'sys');
+      addMsg('YouTube video loaded.', 'sys');
     } else if (src.kind === 'local') {
       destroyPlayer();
       source = src;
       pendingLocal = src;
       const n = $('#needFile');
-      n.textContent = 'Friend ne "' + src.name + '" chuni hai. "Choose video file" dabao aur wahi file chuno.';
+      n.textContent = 'Your friend chose "' + src.name + '". Click "Choose video file" and pick the same file.';
       n.hidden = false;
     }
   }
 
   $('#loadYt').onclick = async () => {
     const id = parseYouTubeId($('#ytUrl').value);
-    if (!id) { addMsg('YouTube link sahi nahi lag raha.', 'sys'); return; }
+    if (!id) { addMsg('That doesn\'t look like a valid YouTube link.', 'sys'); return; }
     pendingLocal = null;
     lastPlayback = { playing: false, time: 0, at: Date.now() };
     await setSource({ kind: 'youtube', id });
@@ -430,7 +430,7 @@
     if (pendingLocal) {
       // friend already chose a file; load ours without resetting their playback
       if (pendingLocal.size && pendingLocal.size !== file.size) {
-        addMsg('Dhyan do: file ka size friend ki file se alag hai. Same version ho to sync sahi rahega.', 'sys');
+        addMsg('Heads up: this file\'s size differs from your friend\'s file. Sync works best with the same version.', 'sys');
       }
       const src = pendingLocal;
       pendingLocal = null;
@@ -440,24 +440,24 @@
       lastPlayback = { playing: false, time: 0, at: Date.now() };
       await setSource(src, file);
       socket.emit('source', src);
-      addMsg('Friend ko bolo ki wo bhi "' + file.name + '" wali file chune.', 'sys');
+      addMsg('Ask your friend to choose the file "' + file.name + '" too.', 'sys');
     }
   });
 
   /* ---------- socket events ---------- */
   socket.on('source', ({ source: src, from }) => {
-    addMsg(from + ' ne naya video chuna.', 'sys');
+    addMsg(from + ' chose a new video.', 'sys');
     lastPlayback = { playing: false, time: 0, at: Date.now() };
     handleSource(src, { playing: false, time: 0 });
   });
   socket.on('playback', (pb) => applyPlayback(pb));
   socket.on('peer-joined', ({ name }) => {
     setPeer(name);
-    addMsg(name + ' aa gaya.', 'sys');
+    addMsg(name + ' joined.', 'sys');
   });
   socket.on('peer-left', ({ name }) => {
     setPeer(null);
-    addMsg(name + ' chala gaya.', 'sys');
+    addMsg(name + ' left.', 'sys');
     endCall(false);
   });
   socket.on('chat', ({ name, text }) => addMsg(text, name === myName ? 'me' : '', name));
@@ -503,18 +503,18 @@
   }
 
   $('#startCall').onclick = async () => {
-    if (!peerName) { addMsg('Pehle friend ko room me aane do, phir call start karo.', 'sys'); return; }
+    if (!peerName) { addMsg('Wait for your friend to join the room, then start the call.', 'sys'); return; }
     try {
       await getMedia();
     } catch (e) {
-      addMsg('Mic/camera ki permission nahi mili.', 'sys'); return;
+      addMsg('Mic/camera permission was not granted.', 'sys'); return;
     }
     makePC();
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     socket.emit('signal', { sdp: pc.localDescription });
     callUI(true);
-    addMsg('Call ring ho rahi hai...', 'sys');
+    addMsg('Calling...', 'sys');
   };
 
   $('#joinCall').onclick = async () => {
@@ -522,7 +522,7 @@
     try {
       await getMedia();
     } catch (e) {
-      addMsg('Mic/camera ki permission nahi mili.', 'sys'); return;
+      addMsg('Mic/camera permission was not granted.', 'sys'); return;
     }
     makePC();
     await pc.setRemoteDescription(incomingOffer);
@@ -536,13 +536,13 @@
 
   socket.on('signal', async (d) => {
     try {
-      if (d.hangup) { endCall(false); addMsg('Friend ne call chhod di.', 'sys'); return; }
+      if (d.hangup) { endCall(false); addMsg('Your friend left the call.', 'sys'); return; }
       if (d.sdp) {
         if (d.sdp.type === 'offer') {
           incomingOffer = d.sdp;
           $('#startCall').hidden = true;
           $('#joinCall').hidden = false;
-          addMsg('Friend call kar raha hai. "Join call" dabao.', 'sys');
+          addMsg('Your friend is calling. Press "Join call".', 'sys');
         } else if (pc) {
           await pc.setRemoteDescription(d.sdp);
           await flushIce();
@@ -562,7 +562,7 @@
   };
   $('#camBtn').onclick = () => {
     const t = localStream && localStream.getVideoTracks()[0];
-    if (!t) { addMsg('Camera available nahi hai.', 'sys'); return; }
+    if (!t) { addMsg('Camera is not available.', 'sys'); return; }
     t.enabled = !t.enabled;
     $('#camBtn').textContent = t.enabled ? 'Camera off' : 'Camera on';
   };
